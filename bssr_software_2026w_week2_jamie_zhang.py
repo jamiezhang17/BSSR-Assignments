@@ -44,8 +44,13 @@ class Motor(Application):
             with self.environment.contexts() as contexts: # store self.environment.contexts() resource as a variable "contexts"
                 # get states from contexts
                 status_input = contexts.motor_status_input # current status of the motor (extracted from environment)
-                # ADDED 
+                # ADDED ########## 
                 num_error_flags = contexts.motor_controller_error_flags # get the error flags from motor environment to detect any errors
+                MOTOR_MAX_CURRENT = contexts.motor_bus_current_limit # # store the current limits as a constant from environment settings
+                current_flag = contexts.motor_controller_limit_flags # get the current flags from the battery 
+                current_input = contexts.motor_controller_bus_current # get the current from environments
+                
+
 
             # status_input here is basically a bool representing the state of
             # the battery relay
@@ -68,6 +73,10 @@ class Motor(Application):
             # (mentioned in Status Information from document)
             if num_error_flags != 0:
                 should_reset = True # trigger for resetting the motor 
+
+            # check for over current errors 
+            if current_flag != 0 or current_input > MOTOR_MAX_CURRENT: # reset if flagged as error or the current is greater than the max limit
+                should_reset = True 
                 
             # if detected errors, reset 
             if should_reset:
@@ -78,6 +87,7 @@ class Motor(Application):
                 # reset contexts after 
                 with self.environment.contexts() as contexts:
                     contexts.motor_controller_error_flags = 0 # reset error flags to 0 
+                    contexts.motor_controller_limit_flags = 0
                     contexts.motor_cruise_control_status_input = False # condition to run the while loop again (restarting)
                     
                 
